@@ -59,8 +59,11 @@ if connectionOK == True:
     for ii in range(1,411):
         Distance = serialConnection.readline()
         
-        if ii>10:
+        if ii>10: # Ignore the first 10 measurements (they are unreliable)
             Distance = int(Distance)
+            
+            # Calculate angle and radius to plot. Cut distances greater than the
+            # desired cap
             if ii>10 and ii<211 and Distance<distanceCap:
                 theta = 0+(ii-11)*2*Npi/200;
                 rho = Distance;
@@ -68,6 +71,8 @@ if connectionOK == True:
                 theta = 2*Npi-(ii-11)*2*Npi/200;
                 rho = Distance;
 
+            # Plot the data from the forwards sweep and the backwards sweep
+            # separately
             if ii>10 and ii<211 and Distance<distanceCap:
                 print('1. {} {}'.format(theta,rho))
             elif ii>210 and ii<411 and Distance<distanceCap:
