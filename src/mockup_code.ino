@@ -1,15 +1,14 @@
 #define MAGICNUMBER 72019
-#define CONNECT_PIN 2
-#define SPIRAL_PIN  3
-#define RANDOM_PIN  4
+
 /*  To simulate different situations connect the following pints to Ground
  *  with a jumper wire:
- *  Pin   Description
- *  D2    Simulate sensor disconnected. MAGICNUMBER-1 will be sent on startup
- *  D3    The data sent will be an increasing counter (a spiral in polar coords)
- *  D4    The data sent will be random
- *  -no-  The data sent will be a constant 5
-*/
+ *  Mode  Description
+ *  0     The data sent will be a constant 5
+ *  -1    Simulate sensor disconnected. MAGICNUMBER-1 will be sent on startup
+ *  1     The data sent will be an increasing counter (a spiral in polar coords)
+ *  2     The data sent will be random
+ */
+const int MODE = 2;
 
 int data_mode = 0; // 0 = single value ; 1 = spiral ; 2 = random
 int Counter = 0;
@@ -20,14 +19,10 @@ bool reading = true;
 bool powerup = true;
 
 void setup(void) {
-  pinMode(CONNECT_PIN, INPUT_PULLUP);
-  pinMode(SPIRAL_PIN, INPUT_PULLUP);
-  pinMode(RANDOM_PIN, INPUT_PULLUP);
-
-  if (digitalRead(SPIRAL_PIN) == LOW) {
+  if (MODE == 1) {
     data_mode = 1;
   }
-  else if (digitalRead(RANDOM_PIN) == LOW) {
+  else if (MODE == 2) {
     data_mode = 2;
   }
   else {
@@ -37,7 +32,7 @@ void setup(void) {
   randomSeed(analogRead(A0)); // init for random data
   Serial.begin(9600);
 
-  if (digitalRead(CONNECT_PIN) == LOW)
+  if (MODE == -1)
   {
     Serial.println(MAGICNUMBER-1);
   } else {
