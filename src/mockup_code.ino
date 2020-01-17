@@ -8,12 +8,11 @@
  *  1     The data sent will be an increasing counter (a spiral in polar coords)
  *  2     The data sent will be random
  */
-const int MODE = 2;
+const int MODE = 1;
 
 int data_mode = 0; // 0 = single value ; 1 = spiral ; 2 = random
-int Counter = 0;
 const int numReadings = 10;
-int myCounter =0;
+int pointCounter =0;
 String readstr;
 bool reading = true;
 bool powerup = true;
@@ -42,49 +41,60 @@ void setup(void) {
 }
 
 void loop(void) {
-  int distance;
+  int distance, degree, turnNo;
   readstr = "";
+  
+  // Wait for a start signal
   while (readstr.compareTo("")==0) {
     readstr = Serial.readStringUntil('\n');
   }
 
-    reading = true;
-    myCounter = 0;
-    Counter = 0;
-    
-    while(reading==true) {
-      if (myCounter>9) {
-        if (Counter<=200) {
-          Counter = Counter+1;
+  reading = true;
+  pointCounter = 0;
+  degree = 0;
+  turnNo = 0;
+  
+  // Start
+  while(reading==true) {
+
+    // Read
+    if (pointCounter<410) {
+      pointCounter = pointCounter+1;
+      //Poll for completion of measurement. Takes 40-50ms.
+      delay(40);
+      delay(5);
+
+      switch (data_mode) {
+        case 0 : distance = 5;
+                 break;
+        case 1 : distance = pointCounter;
+                 break;
+        case 2 : distance = random(100);
+                 break;
+        default : distance = 0;
+      }
+
+      Serial.print(turnNo); Serial.print(", ");
+      Serial.print(degree); Serial.print(", ");
+      Serial.print(distance);
+      Serial.println();
+
+      if (pointCounter>10) {
+        if (pointCounter<=210) {
+          turnNo = 0; //clockwise
+          degree+=18;
           delay(10); // 1 motor step
         }
-        if (Counter>200 && Counter<=400) {
-          Counter = Counter+1;
+        if (pointCounter>210) {
+          turnNo = 1; //counter-clockwise
+          degree-=18;
           delay(10); // 1 motor step
         }
-      }
-      
-      if (myCounter<410) {
-        myCounter = myCounter+1;
-        //Poll for completion of measurement. Takes 40-50ms.
-        delay(40);
-        delay(5);
-
-        switch (data_mode) {
-          case 0 : distance = 5;
-                   break;
-          case 1 : distance = myCounter;
-                   break;
-          case 2 : distance = random(100);
-                   break;
-          default : distance = 0;
-        }
-
-        Serial.print(distance);
-        Serial.println();
-        delay(100); // delay in between reads for stability
-      } else {
-        reading = false;
-      }
     }
+      
+      delay(100); // delay in between reads for stability
+    } else {
+      reading = false;
+    }
+  }
 }
