@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include "Adafruit_MotorShield.h"
-#include "SparkFun_VL53L1X_Arduino_Library.h"
+#include <SparkFun_VL53L1X.h>
 
 #define MAGICNUMBER 72019
 #define SHORT_RANGE 0
@@ -14,7 +14,11 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
 
 // Create the LIDAR sensor object
-VL53L1X distanceSensor;
+//Optional interrupt and shutdown pins.
+#define SHUTDOWN_PIN 2
+#define INTERRUPT_PIN 3
+SFEVL53L1X distanceSensor;//(Wire, SHUTDOWN_PIN, INTERRUPT_PIN);
+
 
 const int numReadings = 10;
 int pointCounter =0;
@@ -28,15 +32,15 @@ void setup(void) {
   myMotor->setSpeed(1); // 0.5 rpm
   Wire.begin(); // start I2C
   
-  if (distanceSensor.begin() == false)
+  if (distanceSensor.init() == false)
   {
-    Serial.println(MAGICNUMBER-1);
-  } else {
     Serial.println(MAGICNUMBER);
+  } else {
+    Serial.println(MAGICNUMBER-1);
   }
 
   //Call setDistanceMode with 0, 1, or 2 to change the sensing range.
-  distanceSensor.setDistanceMode(SHORT_RANGE);
+  distanceSensor.setDistanceModeShort();//(SHORT_RANGE);
 }
 
 void loop(void) {
@@ -60,10 +64,12 @@ void loop(void) {
     if (pointCounter<410) {
       pointCounter = pointCounter+1;
       //Poll for completion of measurement. Takes 40-50ms.
-      while (distanceSensor.newDataReady() == false)
+      //while (distanceSensor.newDataReady() == false)
       delay(5);
 
-      distance = distanceSensor.getDistance();
+      distanceSensor.startRanging(); //Write configuration bytes to initiate measurement
+      distance = distanceSensor.getDistance(); //Get the result of the measurement from the sensor
+      distanceSensor.stopRanging();
 
       Serial.print(turnNo); Serial.print(", ");
       Serial.print(degree); Serial.print(", ");
