@@ -34,6 +34,8 @@ export class WebGLplot {
     */
    public gScaleY: number;
 
+   public gXYratio: number;
+
    /**
     * Global horizontal offset
     * @default = 0
@@ -78,6 +80,7 @@ export class WebGLplot {
 
       this.gScaleX = 1;
       this.gScaleY = 1;
+      this.gXYratio = 1;
       this.gOffsetX = 0;
       this.gOffsetY = 0;
 
@@ -110,7 +113,7 @@ export class WebGLplot {
             webgl.useProgram(line.prog);
 
             const uscale = webgl.getUniformLocation(line.prog, "uscale");
-            webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY]));
+            webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY * this.gXYratio]));
 
             const uoffset = webgl.getUniformLocation(line.prog, "uoffset");
             webgl.uniform2fv(uoffset, new Float32Array([line.offsetX + this.gOffsetX, line.offsetY + this.gOffsetY]));

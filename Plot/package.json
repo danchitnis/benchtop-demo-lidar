@@ -4,7 +4,7 @@
   "description": "",
   "main": ".eslintrc.js",
   "scripts": {
-    "build": "tsc && rollup --config"
+    "build": "tsc && rollup -c"
   },
   "author": "Danial Chitnis",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
-    "@danchitnis/comport": "^0.1.2"
+    "@danchitnis/comport": "^0.1.2",
+    "@danchitnis/simple-slider": "0.0.4"
   }
 }

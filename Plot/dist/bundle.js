@@ -207,6 +207,7 @@
             this.webgl = webgl;
             this.gScaleX = 1;
             this.gScaleY = 1;
+            this.gXYratio = 1;
             this.gOffsetX = 0;
             this.gOffsetY = 0;
             //this.backgroundColor = new ColorRGBA(255,0,0,1);
@@ -228,7 +229,7 @@
                 if (line.visible) {
                     webgl.useProgram(line.prog);
                     const uscale = webgl.getUniformLocation(line.prog, "uscale");
-                    webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY]));
+                    webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY * this.gXYratio]));
                     const uoffset = webgl.getUniformLocation(line.prog, "uoffset");
                     webgl.uniform2fv(uoffset, new Float32Array([line.offsetX + this.gOffsetX, line.offsetY + this.gOffsetY]));
                     const uColor = webgl.getUniformLocation(line.prog, "uColor");
@@ -290,6 +291,119 @@
         }
     }
 
+    /*
+     *
+     */
+    class SimpleSlider extends EventTarget {
+        constructor(div, min, max, step) {
+            super();
+            this.sliderWidth = 0;
+            this.handleOffset = 0;
+            this.active = false;
+            this.currentX = 0;
+            this.initialX = 0;
+            this.value = 0;
+            this.valueMax = 100;
+            this.valueMin = 0;
+            this.valueStep = 0;
+            this.valueMax = max;
+            this.valueMin = min;
+            this.valueStep = step;
+            this.makeDivs(div);
+            this.init();
+            this.handleToCentre();
+            this.divHandle.addEventListener("mousedown", (e) => {
+                const x = e.clientX;
+                this.dragStart(x);
+            });
+            this.divMain.addEventListener("mousemove", (e) => {
+                const x = e.clientX;
+                this.drag(e, x);
+            });
+            this.divMain.addEventListener("mouseup", (e) => {
+                this.dragEnd(e);
+            });
+            this.divMain.addEventListener("mouseleave", (e) => {
+                this.dragEnd(e);
+            });
+            this.divHandle.addEventListener("touchstart", (e) => {
+                const x = e.touches[0].clientX;
+                this.dragStart(x);
+            });
+            this.divMain.addEventListener("touchmove", (e) => {
+                const x = e.touches[0].clientX;
+                this.drag(e, x);
+            });
+            this.divMain.addEventListener("touchend", (e) => {
+                this.dragEnd(e);
+            });
+        }
+        dragStart(x) {
+            this.initialX = x - parseFloat(getComputedStyle(this.divHandle).left) - this.handleOffset / 2;
+            this.active = true;
+            this.dispatchEvent(new CustomEvent('drag-start'));
+        }
+        drag(e, x) {
+            if (this.active) {
+                e.preventDefault();
+                this.currentX = x - this.initialX;
+                this.setTranslate(this.currentX);
+                this.dispatchEvent(new CustomEvent('drag-move'));
+            }
+        }
+        dragEnd(e) {
+            this.active = false;
+            this.dispatchEvent(new CustomEvent('drag-end'));
+        }
+        setTranslate(xPos) {
+            const pxMin = this.handleOffset;
+            const pxMax = this.sliderWidth - this.handleOffset;
+            if (xPos > pxMin && xPos < pxMax) {
+                const handlePos = xPos - this.handleOffset;
+                const barPos = xPos;
+                this.divHandle.style.left = handlePos.toString() + "px";
+                this.divBarL.style.left = this.handleOffset.toString() + "px";
+                this.divBarL.style.width = (barPos - this.handleOffset / 2).toString() + "px";
+                this.divBarR.style.width = (this.sliderWidth - barPos - this.handleOffset / 2).toString() + "px";
+                const innerValue = (barPos - pxMin) / (pxMax - pxMin);
+                this.value = (this.valueMax - this.valueMin) * innerValue + this.valueMin;
+            }
+        }
+        makeDivs(mainDiv) {
+            this.divMain = document.getElementById(mainDiv);
+            this.divMain.className = "simple-slider";
+            this.divHandle = document.createElement("div");
+            this.divHandle.id = "handle";
+            this.divHandle.className = "simple-slider-handle";
+            this.divBarL = document.createElement("div");
+            this.divBarL.id = "barL";
+            this.divBarL.className = "simple-slider-barL";
+            this.divBarR = document.createElement("div");
+            this.divBarR.id = "barR";
+            this.divBarR.className = "simple-slider-barR";
+            this.divMain.append(this.divHandle);
+            this.divMain.append(this.divBarL);
+            this.divMain.append(this.divBarR);
+        }
+        init() {
+            this.sliderWidth = parseFloat(getComputedStyle(this.divMain).getPropertyValue("width"));
+            const handleWidth = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("width"));
+            const handlePad = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("border-left-width"));
+            this.handleOffset = (handleWidth + handlePad) / 2;
+        }
+        handleToCentre() {
+            this.setTranslate(this.sliderWidth / 2);
+        }
+        resize() {
+            this.init();
+            const newPos = this.value * 0.01 * this.sliderWidth;
+            this.setTranslate(newPos);
+        }
+        addEventListener(eventName, listener) {
+            super.addEventListener(eventName, listener);
+        }
+    }
+
     /**
      * WebBlutooth example for Arduino Nano BLE 33
      *
@@ -304,10 +418,14 @@
     {
         const canv = document.getElementById("plot");
         let numPoints = 200;
+        let rScale = 500;
         let wglp;
         let line;
         let line2;
+        let line3;
         let port;
+        let slider;
+        let pScale;
         const btConnect = document.getElementById("btConnect");
         const btStop = document.getElementById("btStop");
         const btSend = document.getElementById("btSend");
@@ -317,11 +435,14 @@
         window.addEventListener("resize", () => {
             clearTimeout(resizeId);
             resizeId = setTimeout(doneResizing, 100);
+            slider.resize();
         });
+        createUI();
         init();
         log("Ready...\n");
         function newFrame() {
-            //wglp.clear();
+            wglp.gScaleX = rScale;
+            wglp.gScaleY = rScale;
             wglp.update();
             window.requestAnimationFrame(newFrame);
         }
@@ -362,26 +483,33 @@
             update(deg, rad);
         }
         function init() {
+            slider.addEventListener("drag-move", () => {
+                pScale.innerHTML = "Scale = " + slider.value.toPrecision(2);
+                rScale = 1 / slider.value;
+            });
             const devicePixelRatio = window.devicePixelRatio || 1;
             const numX = Math.round(canv.clientWidth * devicePixelRatio);
             const numY = Math.round(canv.clientHeight * devicePixelRatio);
-            const lineColor = new ColorRGBA(0.1, 0.9, 0.1, 1);
+            const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
             line = new WebglPolar(lineColor, numPoints);
             line.loop = false;
             line2 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
+            line3 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
             wglp = new WebGLplot(canv);
             //wglp.offsetX = -1;
-            wglp.gScaleX = numY / numX;
-            wglp.gScaleY = 1;
+            wglp.gXYratio = numX / numY;
             //line.linespaceX(-1, 2  / numX);
             wglp.addLine(line);
             wglp.addLine(line2);
+            wglp.addLine(line3);
             for (let i = 0; i < line.numPoints; i++) {
                 const theta = i * 360 / line.numPoints;
                 const r = 0;
                 //const r = 1;
                 line.setRtheta(i, theta, r);
+                line3.setRtheta(i, theta, 1);
             }
+            wglp.update();
         }
         function update(deg, rad) {
             //line.offsetTheta = 10*noise;
@@ -393,6 +521,10 @@
             line2.setRtheta(0, 0, 0);
             line2.setRtheta(1, theta, 1);
             console.log(index, theta, r);
+        }
+        function createUI() {
+            slider = new SimpleSlider("slider", 0.1, 10, 0);
+            pScale = document.getElementById("scale");
         }
         function doneResizing() {
             wglp.viewport(0, 0, canv.width, canv.height);

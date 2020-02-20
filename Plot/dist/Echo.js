@@ -11,16 +11,18 @@
  */
 import { ComPort } from "@danchitnis/comport";
 import { ColorRGBA, WebglPolar, WebGLplot } from "./webglplot/webglplot";
+import { SimpleSlider } from "@danchitnis/simple-slider";
 {
-    let preR = 0.5;
     const canv = document.getElementById("plot");
-    let indexNow = 0;
     let numPoints = 200;
-    let segView = false;
+    let rScale = 500;
     let wglp;
     let line;
     let line2;
+    let line3;
     let port;
+    let slider;
+    let pScale;
     const btConnect = document.getElementById("btConnect");
     const btStop = document.getElementById("btStop");
     const btSend = document.getElementById("btSend");
@@ -30,12 +32,14 @@ import { ColorRGBA, WebglPolar, WebGLplot } from "./webglplot/webglplot";
     window.addEventListener("resize", () => {
         clearTimeout(resizeId);
         resizeId = setTimeout(doneResizing, 100);
+        slider.resize();
     });
     createUI();
     init();
     log("Ready...\n");
     function newFrame() {
-        //wglp.clear();
+        wglp.gScaleX = rScale;
+        wglp.gScaleY = rScale;
         wglp.update();
         window.requestAnimationFrame(newFrame);
     }
@@ -76,26 +80,33 @@ import { ColorRGBA, WebglPolar, WebGLplot } from "./webglplot/webglplot";
         update(deg, rad);
     }
     function init() {
+        slider.addEventListener("drag-move", () => {
+            pScale.innerHTML = "Scale = " + slider.value.toPrecision(2);
+            rScale = 1 / slider.value;
+        });
         const devicePixelRatio = window.devicePixelRatio || 1;
         const numX = Math.round(canv.clientWidth * devicePixelRatio);
         const numY = Math.round(canv.clientHeight * devicePixelRatio);
-        const lineColor = new ColorRGBA(0.1, 0.9, 0.1, 1);
+        const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
         line = new WebglPolar(lineColor, numPoints);
         line.loop = false;
         line2 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
+        line3 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
         wglp = new WebGLplot(canv);
         //wglp.offsetX = -1;
-        wglp.gScaleX = numY / numX;
-        wglp.gScaleY = 1;
+        wglp.gXYratio = numX / numY;
         //line.linespaceX(-1, 2  / numX);
         wglp.addLine(line);
         wglp.addLine(line2);
+        wglp.addLine(line3);
         for (let i = 0; i < line.numPoints; i++) {
             const theta = i * 360 / line.numPoints;
             const r = 0;
             //const r = 1;
             line.setRtheta(i, theta, r);
+            line3.setRtheta(i, theta, 1);
         }
+        wglp.update();
     }
     function update(deg, rad) {
         //line.offsetTheta = 10*noise;
@@ -109,7 +120,8 @@ import { ColorRGBA, WebglPolar, WebGLplot } from "./webglplot/webglplot";
         console.log(index, theta, r);
     }
     function createUI() {
-        //nothing yet
+        slider = new SimpleSlider("slider", 0.1, 10, 0);
+        pScale = document.getElementById("scale");
     }
     function doneResizing() {
         wglp.viewport(0, 0, canv.width, canv.height);

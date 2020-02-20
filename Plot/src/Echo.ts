@@ -13,26 +13,26 @@
 
 import {ComPort} from "@danchitnis/comport";
 import { ColorRGBA, WebglPolar, WebGLplot, WebglLine} from "./webglplot/webglplot"
+import {SimpleSlider} from "@danchitnis/simple-slider";
 
 {
 
-  let preR = 0.5;
 
   const canv =  document.getElementById("plot") as HTMLCanvasElement;
 
 
-  let indexNow = 0;
-
   let numPoints = 200;
-
-  let segView = false;
+  let rScale = 500;
 
   let wglp: WebGLplot;
   let line: WebglPolar;
   let line2: WebglPolar;
+  let line3: WebglPolar;
   
 
- let port: ComPort;
+  let port: ComPort;
+  let slider: SimpleSlider;
+  let pScale: HTMLParagraphElement;
  
 
 
@@ -47,6 +47,9 @@ import { ColorRGBA, WebglPolar, WebGLplot, WebglLine} from "./webglplot/webglplo
   window.addEventListener("resize", () => {
       clearTimeout(resizeId);
       resizeId = setTimeout(doneResizing, 100);
+
+      slider.resize();
+
   });
   createUI();
 
@@ -57,12 +60,11 @@ import { ColorRGBA, WebglPolar, WebGLplot, WebglLine} from "./webglplot/webglplo
 
 
  function newFrame(): void {
-
-  //wglp.clear();
+  wglp.gScaleX = rScale;
+  wglp.gScaleY = rScale;
   wglp.update();
 
   window.requestAnimationFrame(newFrame);
-  
 }
 window.requestAnimationFrame(newFrame);
 
@@ -113,8 +115,6 @@ window.requestAnimationFrame(newFrame);
  }
 
 
-
-
   function dataRX(e: CustomEvent<string>): void {
     log(e.detail + "\n");
     const detail = e.detail.split(",");
@@ -131,23 +131,29 @@ window.requestAnimationFrame(newFrame);
 
   function init(): void {
 
+    slider.addEventListener("drag-move", ()=> {
+      pScale.innerHTML = "Scale = " + slider.value.toPrecision(2);
+      rScale = 1 / slider.value;
+    });
+
     const devicePixelRatio = window.devicePixelRatio || 1;
     const numX = Math.round(canv.clientWidth * devicePixelRatio);
     const numY = Math.round(canv.clientHeight * devicePixelRatio);
 
-    const lineColor = new ColorRGBA(0.1, 0.9, 0.1, 1);
+    const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
     line = new WebglPolar(lineColor, numPoints);
     line.loop = false;
 
     line2 = new WebglPolar(new ColorRGBA(0.9,0.9,0.9,1), 2);
+
+    line3 = new WebglPolar(new ColorRGBA(0.9,0.9,0.9,1), numPoints);
 
 
 
     wglp = new WebGLplot(canv);
 
     //wglp.offsetX = -1;
-    wglp.gScaleX = numY/numX;
-    wglp.gScaleY = 1;
+    wglp.gXYratio = numX/numY;
 
 
 
@@ -155,13 +161,17 @@ window.requestAnimationFrame(newFrame);
     //line.linespaceX(-1, 2  / numX);
     wglp.addLine(line);
     wglp.addLine(line2);
+    wglp.addLine(line3);
 
     for (let i=0; i < line.numPoints; i++) {
       const theta = i * 360 / line.numPoints;
       const r = 0;
       //const r = 1;
       line.setRtheta(i, theta, r);
+      line3.setRtheta(i, theta, 1);
     }
+
+    wglp.update();
   }
 
 
@@ -172,7 +182,7 @@ window.requestAnimationFrame(newFrame);
     const theta = deg/10;
     const index = Math.round(theta / 1.8);
     //preR form previous update
-    const r = rad/500;
+    const r = rad / 500;
     line.setRtheta(index, theta, r);
 
     line2.setRtheta(0, 0, 0);
@@ -181,10 +191,13 @@ window.requestAnimationFrame(newFrame);
     console.log(index,theta,r);
 
   }
+
+
   
 
   function createUI() {
-    //nothing yet
+    slider = new SimpleSlider("slider", 0.1, 10, 0);
+    pScale = document.getElementById("scale") as HTMLParagraphElement;
   }
 
   function doneResizing(): void {

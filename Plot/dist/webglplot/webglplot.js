@@ -32,6 +32,7 @@ export class WebGLplot {
         this.webgl = webgl;
         this.gScaleX = 1;
         this.gScaleY = 1;
+        this.gXYratio = 1;
         this.gOffsetX = 0;
         this.gOffsetY = 0;
         //this.backgroundColor = new ColorRGBA(255,0,0,1);
@@ -53,7 +54,7 @@ export class WebGLplot {
             if (line.visible) {
                 webgl.useProgram(line.prog);
                 const uscale = webgl.getUniformLocation(line.prog, "uscale");
-                webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY]));
+                webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY * this.gXYratio]));
                 const uoffset = webgl.getUniformLocation(line.prog, "uoffset");
                 webgl.uniform2fv(uoffset, new Float32Array([line.offsetX + this.gOffsetX, line.offsetY + this.gOffsetY]));
                 const uColor = webgl.getUniformLocation(line.prog, "uColor");
