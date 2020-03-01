@@ -10,16 +10,17 @@
  * https://codelabs.developers.google.com/codelabs/web-serial/#3
  */
 import { ComPort } from "@danchitnis/comport";
-import { ColorRGBA, WebglPolar, WebGLplot } from "./webglplot/webglplot";
+import { ColorRGBA, WebglPolar, WebGLplot } from "webgl-plot";
 import { SimpleSlider } from "@danchitnis/simple-slider";
 {
     const canv = document.getElementById("plot");
     let numPoints = 200;
     let rScale = 500;
     let wglp;
-    let line;
-    let line2;
-    let line3;
+    let lineForward;
+    let lineBackward;
+    let lineCursor;
+    let lineBorder;
     let port;
     let slider;
     let pScale;
@@ -57,7 +58,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     btSend.addEventListener("click", () => {
         sendLine();
     });
-    inText.addEventListener("keyup", (e) => {
+    inText.addEventListener("keyup", e => {
         if (e.keyCode === 13) {
             sendLine();
         }
@@ -74,10 +75,10 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     function dataRX(e) {
         log(e.detail + "\n");
         const detail = e.detail.split(",");
-        const index = parseInt(detail[0]);
+        const dir = parseInt(detail[0]);
         const deg = parseInt(detail[1]);
         const rad = parseInt(detail[2]);
-        update(deg, rad);
+        update(dir, deg, rad);
     }
     function init() {
         slider.addEventListener("drag-move", () => {
@@ -88,35 +89,40 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         const numX = Math.round(canv.clientWidth * devicePixelRatio);
         const numY = Math.round(canv.clientHeight * devicePixelRatio);
         const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
-        line = new WebglPolar(lineColor, numPoints);
-        line.loop = false;
-        line2 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
-        line3 = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
+        lineForward = new WebglPolar(lineColor, numPoints);
+        lineForward.loop = false;
+        lineCursor = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
+        lineBackward = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
         wglp = new WebGLplot(canv);
         //wglp.offsetX = -1;
         wglp.gXYratio = numX / numY;
         //line.linespaceX(-1, 2  / numX);
-        wglp.addLine(line);
-        wglp.addLine(line2);
-        wglp.addLine(line3);
-        for (let i = 0; i < line.numPoints; i++) {
-            const theta = i * 360 / line.numPoints;
+        wglp.addLine(lineForward);
+        wglp.addLine(lineBackward);
+        wglp.addLine(lineCursor);
+        for (let i = 0; i < lineForward.numPoints; i++) {
+            const theta = (i * 360) / lineForward.numPoints;
             const r = 0;
             //const r = 1;
-            line.setRtheta(i, theta, r);
-            line3.setRtheta(i, theta, 1);
+            lineForward.setRtheta(i, theta, r);
+            lineBackward.setRtheta(i, theta, r);
+            lineBorder.setRtheta(i, theta, 1);
         }
-        wglp.update();
     }
-    function update(deg, rad) {
+    function update(dir, deg, rad) {
         //line.offsetTheta = 10*noise;
         const theta = deg / 10;
         const index = Math.round(theta / 1.8);
         //preR form previous update
         const r = rad / 500;
-        line.setRtheta(index, theta, r);
-        line2.setRtheta(0, 0, 0);
-        line2.setRtheta(1, theta, 1);
+        if (dir == 0) {
+            lineForward.setRtheta(index, theta, r);
+        }
+        else {
+            lineBackward.setRtheta(index, theta, r);
+        }
+        lineCursor.setRtheta(0, 0, 0);
+        lineCursor.setRtheta(1, theta, 1);
         console.log(index, theta, r);
     }
     function createUI() {

@@ -10,14 +10,15 @@
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^7.1.0",
-    "@typescript-eslint/eslint-plugin": "^2.18.0",
-    "@typescript-eslint/parser": "^2.18.0",
+    "@typescript-eslint/eslint-plugin": "^2.21.0",
+    "@typescript-eslint/parser": "^2.21.0",
     "eslint": "^6.8.0",
-    "rollup": "^1.31.0",
-    "typescript": "^3.7.5"
+    "rollup": "^1.32.0",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@danchitnis/comport": "^0.1.2",
-    "@danchitnis/simple-slider": "0.0.4"
+    "@danchitnis/simple-slider": "0.0.4",
+    "webgl-plot": "^0.2.9"
   }
 }
