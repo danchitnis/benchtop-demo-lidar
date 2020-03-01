@@ -15,7 +15,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
 {
     const canv = document.getElementById("plot");
     let numPoints = 200;
-    let rScale = 500;
+    let rScale = 0.2;
     let wglp;
     let lineForward;
     let lineBackward;
@@ -26,8 +26,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     let pScale;
     const btConnect = document.getElementById("btConnect");
     const btStop = document.getElementById("btStop");
-    const btSend = document.getElementById("btSend");
-    const inText = document.getElementById("inputText");
+    const btStart = document.getElementById("btStart");
     const pLog = document.getElementById("pLog");
     let resizeId;
     window.addEventListener("resize", () => {
@@ -50,22 +49,15 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         port.connect(9600);
         port.addEventListener("rx", dataRX);
         port.addEventListener("rx-msg", dataRX);
-        console.log("here1 🍔");
     });
     btStop.addEventListener("click", () => {
         port.disconnect();
     });
-    btSend.addEventListener("click", () => {
+    btStart.addEventListener("click", () => {
         sendLine();
     });
-    inText.addEventListener("keyup", e => {
-        if (e.keyCode === 13) {
-            sendLine();
-        }
-    });
     function sendLine() {
-        port.sendLine(inText.value);
-        inText.value = "";
+        port.sendLine("a");
     }
     function log(str) {
         const str1 = str.replace(/(?:\r\n|\r|\n)/g, "<br>");
@@ -81,7 +73,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         update(dir, deg, rad);
     }
     function init() {
-        slider.addEventListener("drag-move", () => {
+        slider.addEventListener("update", () => {
             pScale.innerHTML = "Scale = " + slider.value.toPrecision(2);
             rScale = 1 / slider.value;
         });
@@ -91,8 +83,11 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
         lineForward = new WebglPolar(lineColor, numPoints);
         lineForward.loop = false;
+        lineBackward = new WebglPolar(new ColorRGBA(0.1, 0.9, 0.9, 1), numPoints);
+        lineBackward.loop = false;
         lineCursor = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
-        lineBackward = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
+        lineBorder = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
+        lineBorder.loop = true;
         wglp = new WebGLplot(canv);
         //wglp.offsetX = -1;
         wglp.gXYratio = numX / numY;
@@ -100,6 +95,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         wglp.addLine(lineForward);
         wglp.addLine(lineBackward);
         wglp.addLine(lineCursor);
+        wglp.addLine(lineBorder);
         for (let i = 0; i < lineForward.numPoints; i++) {
             const theta = (i * 360) / lineForward.numPoints;
             const r = 0;
@@ -123,7 +119,6 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         }
         lineCursor.setRtheta(0, 0, 0);
         lineCursor.setRtheta(1, theta, 1);
-        console.log(index, theta, r);
     }
     function createUI() {
         slider = new SimpleSlider("slider", 0.1, 10, 0);
@@ -131,6 +126,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     }
     function doneResizing() {
         wglp.viewport(0, 0, canv.width, canv.height);
+        wglp.gXYratio = canv.width / canv.height;
         //init();
     }
 }

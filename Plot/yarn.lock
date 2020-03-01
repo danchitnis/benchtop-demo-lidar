@@ -23,10 +23,10 @@
   resolved "https://registry.yarnpkg.com/@danchitnis/comport/-/comport-0.1.2.tgz#46c730fba8a222da2c444912c3dba5b845904b3a"
   integrity sha512-FIKqOOuYhP91Gt21VsX0vrC5FHYZ/D3MU3E0kSP+IxwvbHssyYNGPwKf2641wjBcnEjCJhrgFC1fPCfdoMSmgQ==
 
-"@danchitnis/simple-slider@0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@danchitnis/simple-slider/-/simple-slider-0.0.4.tgz#54d6fc0188b3d3a691e2f63d1e5d3553bd4a4c18"
-  integrity sha512-rEdS2Ou9zjLhtyjXUFPVUH3QEvKn0SqAm5mvADySDl1WU4tRVRuGpSf4H4TyTQl4dZzkWCE1aNtDKhLLdB91Rw==
+"@danchitnis/simple-slider@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@danchitnis/simple-slider/-/simple-slider-0.0.7.tgz#8c45b707bfaf4e6df4a99a6793898367ac0e3077"
+  integrity sha512-u/U28aahKSkd9FTLs62Ud6GoMHmdkLyo8fDRYi76h0DpEAzKlWiLQqmRWUhaoGIaWyCZuqOAauWvObCBiRtw6w==
 
 "@rollup/plugin-node-resolve@^7.1.0":
   version "7.1.1"

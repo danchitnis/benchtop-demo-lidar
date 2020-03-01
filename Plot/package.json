@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@danchitnis/comport": "^0.1.2",
-    "@danchitnis/simple-slider": "0.0.4",
+    "@danchitnis/simple-slider": "^0.0.7",
     "webgl-plot": "^0.2.9"
   }
 }

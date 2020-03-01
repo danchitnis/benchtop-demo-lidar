@@ -1,46 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <meta http-equiv="origin-trial" content="Al8wTEssPCb84NJprh3h/1Zlltpqv8pTndPz6cpRTIjoPUQk1bkkGMSGOLgLpCwKl5H0E3Qyo9WDyhZsjh1N/wYAAABUeyJvcmlnaW4iOiJodHRwczovL2RhbmNoaXRuaXMuZ2l0aHViLmlvOjQ0MyIsImZlYXR1cmUiOiJTZXJpYWwiLCJleHBpcnkiOjE1ODQyMzgwNjJ9">
-      
-      <title>Benchtop LiDAR Demo</title>
-      <link rel="stylesheet" href="./style.css" type="text/css">
-      <link rel="stylesheet" href="./dist/slider.css" type="text/css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="origin-trial"
+      content="Al8wTEssPCb84NJprh3h/1Zlltpqv8pTndPz6cpRTIjoPUQk1bkkGMSGOLgLpCwKl5H0E3Qyo9WDyhZsjh1N/wYAAABUeyJvcmlnaW4iOiJodHRwczovL2RhbmNoaXRuaXMuZ2l0aHViLmlvOjQ0MyIsImZlYXR1cmUiOiJTZXJpYWwiLCJleHBpcnkiOjE1ODQyMzgwNjJ9"
+    />
 
-      
-   </head>
-  
-   <body>
-      
-        <div>
-            <h1>Benchtop LiDAR Demo</h1>
-            <button id="btConnect" class="button">Connect</button>
-            <button id="btStop" class="button">Stop</button>
-            <div>
-               <span>Input Text: </span>
-               <input type="text" id="inputText" class="inputText">
-               <button id="btSend" class="button">Send</button>
-            </div>
-            <canvas id="plot"></canvas>
-            <div id="slider"></div>
-            <p id="scale">0</p>
-            <h3>Status:</h3>
-            <p id="pLog">Ready...</p>
-        </div>
+    <title>Benchtop LiDAR Demo</title>
+    <link rel="stylesheet" href="./style.css" type="text/css" />
+    <link rel="stylesheet" href="./dist/slider.css" type="text/css" />
+  </head>
 
-        <style>
-           .inputText {
-              width: 70%;
-              margin-right: 2%;
-           }
-        </style>
+  <body>
+    <div>
+      <h1>Benchtop LiDAR Demo</h1>
+      <button id="btConnect" class="button">Connect</button>
+      <button id="btStart" class="button">Start</button>
+      <button id="btStop" class="button">Stop</button>
 
-   </body>
+      <canvas id="plot"></canvas>
+      <div id="slider"></div>
+      <p id="scale">0</p>
+      <h3>Status:</h3>
+      <p id="pLog">Ready...</p>
+    </div>
 
-   <script src="./dist/bundle.js"></script>
-   
+    <style>
+      .inputText {
+        width: 70%;
+        margin-right: 2%;
+      }
+    </style>
+  </body>
 
-
-  </html>
+  <script src="./dist/bundle.js"></script>
+</html>

@@ -303,54 +303,62 @@
             this.valueMax = 100;
             this.valueMin = 0;
             this.valueStep = 0;
+            this.handleLeftPos = 0;
             this.valueMax = max;
             this.valueMin = min;
             this.valueStep = step;
             this.makeDivs(div);
             this.init();
             this.handleToCentre();
-            this.divHandle.addEventListener("mousedown", (e) => {
+            this.divHandle.addEventListener("mousedown", e => {
                 const x = e.clientX;
                 this.dragStart(x);
             });
-            this.divMain.addEventListener("mousemove", (e) => {
+            this.divMain.addEventListener("mousemove", e => {
                 const x = e.clientX;
                 this.drag(e, x);
             });
-            this.divMain.addEventListener("mouseup", (e) => {
+            this.divMain.addEventListener("mouseup", e => {
                 this.dragEnd(e);
             });
-            this.divMain.addEventListener("mouseleave", (e) => {
+            this.divMain.addEventListener("mouseleave", e => {
                 this.dragEnd(e);
             });
-            this.divHandle.addEventListener("touchstart", (e) => {
+            this.divBarL.addEventListener("mousedown", e => {
+                const x = e.clientX;
+                this.setTranslate(x - this.handleOffset);
+            });
+            this.divBarR.addEventListener("mousedown", e => {
+                const x = e.clientX;
+                this.setTranslate(x - this.handleOffset);
+            });
+            this.divHandle.addEventListener("touchstart", e => {
                 const x = e.touches[0].clientX;
                 this.dragStart(x);
             });
-            this.divMain.addEventListener("touchmove", (e) => {
+            this.divMain.addEventListener("touchmove", e => {
                 const x = e.touches[0].clientX;
                 this.drag(e, x);
             });
-            this.divMain.addEventListener("touchend", (e) => {
+            this.divMain.addEventListener("touchend", e => {
                 this.dragEnd(e);
             });
         }
         dragStart(x) {
-            this.initialX = x - parseFloat(getComputedStyle(this.divHandle).left) - this.handleOffset / 2;
+            this.initialX = x - this.handleLeftPos - this.handleOffset / 2;
             this.active = true;
-            this.dispatchEvent(new CustomEvent('drag-start'));
+            this.dispatchEvent(new CustomEvent("drag-start"));
         }
         drag(e, x) {
             if (this.active) {
                 e.preventDefault();
                 this.currentX = x - this.initialX;
                 this.setTranslate(this.currentX);
-                this.dispatchEvent(new CustomEvent('drag-move'));
             }
         }
         dragEnd(e) {
             this.active = false;
-            this.dispatchEvent(new CustomEvent('drag-end'));
+            this.dispatchEvent(new CustomEvent("drag-end"));
         }
         setTranslate(xPos) {
             const pxMin = this.handleOffset;
@@ -359,11 +367,15 @@
                 const handlePos = xPos - this.handleOffset;
                 const barPos = xPos;
                 this.divHandle.style.left = handlePos.toString() + "px";
+                this.handleLeftPos = handlePos;
                 this.divBarL.style.left = this.handleOffset.toString() + "px";
-                this.divBarL.style.width = (barPos - this.handleOffset / 2).toString() + "px";
-                this.divBarR.style.width = (this.sliderWidth - barPos - this.handleOffset / 2).toString() + "px";
+                this.divBarL.style.width =
+                    (barPos - this.handleOffset / 2).toString() + "px";
+                this.divBarR.style.width =
+                    (this.sliderWidth - barPos - this.handleOffset / 2).toString() + "px";
                 const innerValue = (barPos - pxMin) / (pxMax - pxMin);
                 this.value = (this.valueMax - this.valueMin) * innerValue + this.valueMin;
+                this.dispatchEvent(new CustomEvent("update"));
             }
         }
         makeDivs(mainDiv) {
@@ -387,6 +399,8 @@
             const handleWidth = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("width"));
             const handlePad = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("border-left-width"));
             this.handleOffset = (handleWidth + handlePad) / 2;
+            this.handleLeftPos = parseFloat(getComputedStyle(this.divHandle).left);
+            this.handleToCentre();
         }
         handleToCentre() {
             this.setTranslate(this.sliderWidth / 2);
@@ -394,6 +408,11 @@
         resize() {
             this.init();
             const newPos = this.value * 0.01 * this.sliderWidth;
+            this.setTranslate(newPos);
+        }
+        setValue(val) {
+            const valRel = (val - this.valueMin) / (this.valueMax - this.valueMin);
+            const newPos = valRel * this.sliderWidth;
             this.setTranslate(newPos);
         }
         addEventListener(eventName, listener) {
@@ -415,7 +434,7 @@
     {
         const canv = document.getElementById("plot");
         let numPoints = 200;
-        let rScale = 500;
+        let rScale = 0.2;
         let wglp;
         let lineForward;
         let lineBackward;
@@ -426,8 +445,7 @@
         let pScale;
         const btConnect = document.getElementById("btConnect");
         const btStop = document.getElementById("btStop");
-        const btSend = document.getElementById("btSend");
-        const inText = document.getElementById("inputText");
+        const btStart = document.getElementById("btStart");
         const pLog = document.getElementById("pLog");
         let resizeId;
         window.addEventListener("resize", () => {
@@ -450,22 +468,15 @@
             port.connect(9600);
             port.addEventListener("rx", dataRX);
             port.addEventListener("rx-msg", dataRX);
-            console.log("here1 🍔");
         });
         btStop.addEventListener("click", () => {
             port.disconnect();
         });
-        btSend.addEventListener("click", () => {
+        btStart.addEventListener("click", () => {
             sendLine();
         });
-        inText.addEventListener("keyup", e => {
-            if (e.keyCode === 13) {
-                sendLine();
-            }
-        });
         function sendLine() {
-            port.sendLine(inText.value);
-            inText.value = "";
+            port.sendLine("a");
         }
         function log(str) {
             const str1 = str.replace(/(?:\r\n|\r|\n)/g, "<br>");
@@ -481,7 +492,7 @@
             update(dir, deg, rad);
         }
         function init() {
-            slider.addEventListener("drag-move", () => {
+            slider.addEventListener("update", () => {
                 pScale.innerHTML = "Scale = " + slider.value.toPrecision(2);
                 rScale = 1 / slider.value;
             });
@@ -491,8 +502,11 @@
             const lineColor = new ColorRGBA(0.9, 0.9, 0.1, 1);
             lineForward = new WebglPolar(lineColor, numPoints);
             lineForward.loop = false;
+            lineBackward = new WebglPolar(new ColorRGBA(0.1, 0.9, 0.9, 1), numPoints);
+            lineBackward.loop = false;
             lineCursor = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
-            lineBackward = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
+            lineBorder = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
+            lineBorder.loop = true;
             wglp = new WebGLplot(canv);
             //wglp.offsetX = -1;
             wglp.gXYratio = numX / numY;
@@ -500,6 +514,7 @@
             wglp.addLine(lineForward);
             wglp.addLine(lineBackward);
             wglp.addLine(lineCursor);
+            wglp.addLine(lineBorder);
             for (let i = 0; i < lineForward.numPoints; i++) {
                 const theta = (i * 360) / lineForward.numPoints;
                 const r = 0;
@@ -523,7 +538,6 @@
             }
             lineCursor.setRtheta(0, 0, 0);
             lineCursor.setRtheta(1, theta, 1);
-            console.log(index, theta, r);
         }
         function createUI() {
             slider = new SimpleSlider("slider", 0.1, 10, 0);
@@ -531,6 +545,7 @@
         }
         function doneResizing() {
             wglp.viewport(0, 0, canv.width, canv.height);
+            wglp.gXYratio = canv.width / canv.height;
             //init();
         }
     }
