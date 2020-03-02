@@ -1,13 +1,12 @@
 /**
- * WebBlutooth example for Arduino Nano BLE 33
+ * Benchtop LiDAR Demo
  *
  * Author: Danial Chitnis
- * December 2019
+ * January 2020
  *
  * Please upload the sketch before running this code
  * chrome://flags/#enable-experimental-web-platform-features
  *
- * https://codelabs.developers.google.com/codelabs/web-serial/#3
  */
 import { ComPort } from "@danchitnis/comport";
 import { ColorRGBA, WebglPolar, WebGLplot } from "webgl-plot";
@@ -27,6 +26,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     const btConnect = document.getElementById("btConnect");
     const btStop = document.getElementById("btStop");
     const btStart = document.getElementById("btStart");
+    const btSim = document.getElementById("btSim");
     const pLog = document.getElementById("pLog");
     let resizeId;
     window.addEventListener("resize", () => {
@@ -56,6 +56,10 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     btStart.addEventListener("click", () => {
         sendLine();
     });
+    btSim.addEventListener("click", () => {
+        init();
+        runSim();
+    });
     function sendLine() {
         port.sendLine("a");
     }
@@ -70,7 +74,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         const dir = parseInt(detail[0]);
         const deg = parseInt(detail[1]);
         const rad = parseInt(detail[2]);
-        update(dir, deg, rad);
+        update(dir, deg / 10, rad);
     }
     function init() {
         slider.addEventListener("update", () => {
@@ -107,7 +111,7 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
     }
     function update(dir, deg, rad) {
         //line.offsetTheta = 10*noise;
-        const theta = deg / 10;
+        const theta = deg;
         const index = Math.round(theta / 1.8);
         //preR form previous update
         const r = rad / 500;
@@ -128,6 +132,24 @@ import { SimpleSlider } from "@danchitnis/simple-slider";
         wglp.viewport(0, 0, canv.width, canv.height);
         wglp.gXYratio = canv.width / canv.height;
         //init();
+    }
+    function runSim() {
+        let i = 0;
+        let theta = 0;
+        let dir = 0;
+        const T = 100; //ms
+        let id = setInterval(() => {
+            update(dir, theta * 1.8, i);
+            if (i > 200) {
+                theta = 400 - i;
+                dir = 1;
+            }
+            else {
+                theta = i;
+                dir = 0;
+            }
+            i === 400 ? clearInterval(id) : i++;
+        }, T);
     }
 }
 //# sourceMappingURL=Echo.js.map

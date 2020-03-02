@@ -1,8 +1,8 @@
 {
   "name": "plot",
   "version": "1.0.0",
-  "description": "",
-  "main": ".eslintrc.js",
+  "description": "Benchtop LiDAR demo",
+  "main": "./dist/bundle.js",
   "scripts": {
     "build": "tsc && rollup -c"
   },
