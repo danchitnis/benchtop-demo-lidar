@@ -9,16 +9,16 @@
   "author": "Danial Chitnis",
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^7.1.0",
-    "@typescript-eslint/eslint-plugin": "^2.22.0",
-    "@typescript-eslint/parser": "^2.22.0",
+    "@rollup/plugin-node-resolve": "^7.1.1",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "@typescript-eslint/parser": "^2.24.0",
     "eslint": "^6.8.0",
-    "rollup": "^1.32.0",
+    "rollup": "^2.1.0",
     "typescript": "^3.8.3"
   },
   "dependencies": {
     "@danchitnis/comport": "^0.1.2",
-    "@danchitnis/simple-slider": "^0.0.7",
+    "@danchitnis/simple-slider": "^0.1.1",
     "webgl-plot": "^0.2.9"
   }
 }

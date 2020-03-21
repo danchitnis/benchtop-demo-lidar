@@ -288,25 +288,58 @@
         }
     }
 
-    /*
+    /**
+     * Simple Slide
      *
+     * by Danial Chitnis
+     * Feb 2020
      */
     class SimpleSlider extends EventTarget {
-        constructor(div, min, max, step) {
+        /**
+         *
+         * @param div - The id of the div which the slider is going to be placed
+         * @param min - The minimum value for the slider
+         * @param max - The maximum value for the slider
+         * @param n - number of divisions within the value range, 0 for continuos
+         *
+         * @example
+         * ```javascript
+         * slider = new SimpleSlider("slider", 0, 100, 0);
+         * ```
+         */
+        constructor(div, min, max, n) {
             super();
             this.sliderWidth = 0;
             this.handleOffset = 0;
+            this.pxMin = 0;
+            this.pxMax = 0;
             this.active = false;
             this.currentX = 0;
             this.initialX = 0;
-            this.value = 0;
+            this.handlePos = 0;
+            /**
+             * Current value of the slider
+             * @default half of the value range
+             */
+            this.value = -1;
+            /**
+             * maximum value
+             * @default 100
+             */
             this.valueMax = 100;
+            /**
+             * minimum value for the slider
+             * @default 0
+             */
             this.valueMin = 0;
-            this.valueStep = 0;
-            this.handleLeftPos = 0;
+            /**
+             * number of divisions in the value range
+             * @default 0
+             */
+            this.valueN = 0;
             this.valueMax = max;
             this.valueMin = min;
-            this.valueStep = step;
+            this.valueN = n;
             this.makeDivs(div);
             this.init();
             this.handleToCentre();
@@ -318,19 +351,19 @@
                 const x = e.clientX;
                 this.drag(e, x);
             });
-            this.divMain.addEventListener("mouseup", e => {
-                this.dragEnd(e);
+            this.divMain.addEventListener("mouseup", () => {
+                this.dragEnd();
             });
-            this.divMain.addEventListener("mouseleave", e => {
-                this.dragEnd(e);
+            this.divMain.addEventListener("mouseleave", () => {
+                this.dragEnd();
             });
             this.divBarL.addEventListener("mousedown", e => {
                 const x = e.clientX;
-                this.setTranslate(x - this.handleOffset);
+                this.translate2(x);
             });
             this.divBarR.addEventListener("mousedown", e => {
                 const x = e.clientX;
-                this.setTranslate(x - this.handleOffset);
+                this.translate2(x);
             });
             this.divHandle.addEventListener("touchstart", e => {
                 const x = e.touches[0].clientX;
@@ -340,12 +373,12 @@
                 const x = e.touches[0].clientX;
                 this.drag(e, x);
             });
-            this.divMain.addEventListener("touchend", e => {
-                this.dragEnd(e);
+            this.divMain.addEventListener("touchend", () => {
+                this.dragEnd();
             });
         }
         dragStart(x) {
-            this.initialX = x - this.handleLeftPos - this.handleOffset / 2;
+            this.initialX = x - this.handlePos - this.handleOffset;
             this.active = true;
             this.dispatchEvent(new CustomEvent("drag-start"));
         }
@@ -353,30 +386,120 @@
             if (this.active) {
                 e.preventDefault();
                 this.currentX = x - this.initialX;
-                this.setTranslate(this.currentX);
+                this.translate2(this.currentX);
+                this.value = this.getPositionValue();
+                this.dispatchEvent(new CustomEvent("update"));
             }
         }
-        dragEnd(e) {
+        dragEnd() {
             this.active = false;
             this.dispatchEvent(new CustomEvent("drag-end"));
         }
-        setTranslate(xPos) {
-            const pxMin = this.handleOffset;
-            const pxMax = this.sliderWidth - this.handleOffset;
-            if (xPos > pxMin && xPos < pxMax) {
-                const handlePos = xPos - this.handleOffset;
-                const barPos = xPos;
-                this.divHandle.style.left = handlePos.toString() + "px";
-                this.handleLeftPos = handlePos;
-                this.divBarL.style.left = this.handleOffset.toString() + "px";
-                this.divBarL.style.width =
-                    (barPos - this.handleOffset / 2).toString() + "px";
-                this.divBarR.style.width =
-                    (this.sliderWidth - barPos - this.handleOffset / 2).toString() + "px";
-                const innerValue = (barPos - pxMin) / (pxMax - pxMin);
-                this.value = (this.valueMax - this.valueMin) * innerValue + this.valueMin;
-                this.dispatchEvent(new CustomEvent("update"));
+        /*-----------------------------------------------------------*/
+        translate2(xPos) {
+            this.translate(xPos);
+            if (this.valueN > 0) {
+                let val = this.getPositionValue();
+                const step = (this.valueMax - this.valueMin) / (this.valueN - 1);
+                val = Math.round(val / step) * step;
+                this.setValue(val);
             }
+        }
+        translate(xPos) {
+            this.handlePos = xPos - this.handleOffset;
+            switch (true) {
+                case this.handlePos < this.pxMin: {
+                    this.handlePos = this.pxMin;
+                    break;
+                }
+                case this.handlePos > this.pxMax: {
+                    this.handlePos = this.pxMax;
+                    break;
+                }
+                default: {
+                    this.divHandle.style.left =
+                        (this.handlePos - this.handleOffset).toString() + "px";
+                    this.divBarL.style.width =
+                        (this.handlePos - this.handleOffset).toString() + "px";
+                }
+            }
+        }
+        getPositionValue() {
+            const innerValue = (this.handlePos - this.pxMin) / this.sliderWidth;
+            return (this.valueMax - this.valueMin) * innerValue + this.valueMin;
+        }
+        /**
+         * Sets the value of the slider on demand
+         * @param val - the value of the slider
+         */
+        setValue(val) {
+            const valRel = (val - this.valueMin) / (this.valueMax - this.valueMin);
+            const newPos = valRel * this.sliderWidth + 2 * this.handleOffset;
+            this.translate(newPos);
+            this.value = this.getPositionValue();
+            this.dispatchEvent(new CustomEvent("update"));
+        }
+        init() {
+            const divMainWidth = parseFloat(getComputedStyle(this.divMain).getPropertyValue("width"));
+            const handleWidth = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("width"));
+            const handlePad = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("border-left-width"));
+            this.handleOffset = handleWidth / 2 + handlePad;
+            this.handlePos =
+                parseFloat(getComputedStyle(this.divHandle).left) + this.handleOffset;
+            this.divBarL.style.left = this.handleOffset.toString() + "px";
+            this.divBarR.style.left = this.handleOffset.toString() + "px";
+            this.sliderWidth = divMainWidth - 2 * this.handleOffset;
+            this.divBarL.style.width =
+                (this.handlePos - this.handleOffset).toString() + "px";
+            this.divBarR.style.width = this.sliderWidth.toString() + "px";
+            this.pxMin = this.handleOffset;
+            this.pxMax = this.pxMin + this.sliderWidth;
+            if (this.value == -1) {
+                this.handleToCentre();
+            }
+            else {
+                this.setValue(this.value);
+            }
+        }
+        handleToCentre() {
+            const centre = (this.valueMax - this.valueMin) / 2 + this.valueMin;
+            this.setValue(centre);
+        }
+        /**
+         * Resize the slider
+         *
+         * @example
+         * ```javascript
+         *  window.addEventListener("resize", () => {
+         *    slider.resize();
+         *  });
+         * ```
+         */
+        resize() {
+            this.init();
+            this.setValue(this.value);
+        }
+        /**
+         * Sets the status of the debug mode
+         * @param en - enable value true/false
+         */
+        setDebug(en) {
+            if (en) {
+                this.divHandle.style.zIndex = "0";
+                this.divMain.style.border = "solid red 1px";
+            }
+            else {
+                this.divHandle.style.zIndex = "2";
+                this.divMain.style.border = "none";
+            }
+        }
+        /**
+         *
+         * @param eventName
+         * @param listener
+         */
+        addEventListener(eventName, listener) {
+            super.addEventListener(eventName, listener);
         }
         makeDivs(mainDiv) {
             this.divMain = document.getElementById(mainDiv);
@@ -393,30 +516,6 @@
             this.divMain.append(this.divHandle);
             this.divMain.append(this.divBarL);
             this.divMain.append(this.divBarR);
-        }
-        init() {
-            this.sliderWidth = parseFloat(getComputedStyle(this.divMain).getPropertyValue("width"));
-            const handleWidth = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("width"));
-            const handlePad = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("border-left-width"));
-            this.handleOffset = (handleWidth + handlePad) / 2;
-            this.handleLeftPos = parseFloat(getComputedStyle(this.divHandle).left);
-            this.handleToCentre();
-        }
-        handleToCentre() {
-            this.setTranslate(this.sliderWidth / 2);
-        }
-        resize() {
-            this.init();
-            const newPos = this.value * 0.01 * this.sliderWidth;
-            this.setTranslate(newPos);
-        }
-        setValue(val) {
-            const valRel = (val - this.valueMin) / (this.valueMax - this.valueMin);
-            const newPos = valRel * this.sliderWidth;
-            this.setTranslate(newPos);
-        }
-        addEventListener(eventName, listener) {
-            super.addEventListener(eventName, listener);
         }
     }
 
