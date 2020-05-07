@@ -10,7 +10,7 @@
  */
 
 import { ComPort } from "@danchitnis/comport";
-import { ColorRGBA, WebglPolar, WebGLplot } from "webgl-plot";
+import WebGLplot, { ColorRGBA, WebglPolar } from "webgl-plot";
 import { SimpleSlider } from "@danchitnis/simple-slider";
 
 {

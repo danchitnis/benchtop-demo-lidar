@@ -118,13 +118,24 @@
         }
     }
 
+    /**
+     * Baseline class
+     */
     class WebglBaseLine {
+        /**
+         * @internal
+         */
         constructor() {
             this.scaleX = 1;
             this.scaleY = 1;
             this.offsetX = 0;
             this.offsetY = 0;
             this.loop = false;
+            this._vbuffer = 0;
+            this._prog = 0;
+            this._coord = 0;
+            this.visible = true;
+            this.intensity = 1;
         }
     }
 
@@ -136,9 +147,9 @@
             this.color = c;
             this.intenisty = 1;
             this.xy = new Float32Array(2 * this.webglNumPoints);
-            this.vbuffer = 0;
-            this.prog = 0;
-            this.coord = 0;
+            this._vbuffer = 0;
+            this._prog = 0;
+            this._coord = 0;
             this.visible = true;
             this.offsetTheta = 0;
         }
@@ -150,8 +161,8 @@
         setRtheta(index, theta, r) {
             //const rA = Math.abs(r);
             //const thetaA = theta % 360;
-            const x = r * Math.cos(2 * Math.PI * (theta + this.offsetTheta) / 360);
-            const y = r * Math.sin(2 * Math.PI * (theta + this.offsetTheta) / 360);
+            const x = r * Math.cos((2 * Math.PI * (theta + this.offsetTheta)) / 360);
+            const y = r * Math.sin((2 * Math.PI * (theta + this.offsetTheta)) / 360);
             //const index = Math.round( ((theta % 360)/360) * this.numPoints );
             this.setX(index, x);
             this.setY(index, y);
@@ -186,13 +197,18 @@
      * https://www.tutorialspoint.com/webgl/webgl_modes_of_drawing.htm
      */
     /**
-     * The main class for the webgl-plot framework
+     * The main class for the webgl-plot library
      */
-    class WebGLplot {
-        //public backgroundColor: ColorRGBA;
+    class WebGLPlot {
         /**
          * Create a webgl-plot instance
-         * @param canv: the canvas in which the plot appears
+         * @param canv - the HTML canvas in which the plot appears
+         *
+         * @example
+         * ```typescript
+         * const canv = dcoument.getEelementbyId("canvas");
+         * const webglp = new WebGLplot(canv);
+         * ```
          */
         constructor(canv) {
             const devicePixelRatio = window.devicePixelRatio || 1;
@@ -218,21 +234,26 @@
             webgl.viewport(0, 0, canv.width, canv.height);
         }
         /**
-         * update and redraws the content
+         * updates and redraws the content of the plot
          */
         update() {
             const webgl = this.webgl;
             this.lines.forEach((line) => {
                 if (line.visible) {
-                    webgl.useProgram(line.prog);
-                    const uscale = webgl.getUniformLocation(line.prog, "uscale");
-                    webgl.uniformMatrix2fv(uscale, false, new Float32Array([line.scaleX * this.gScaleX, 0, 0, line.scaleY * this.gScaleY * this.gXYratio]));
-                    const uoffset = webgl.getUniformLocation(line.prog, "uoffset");
+                    webgl.useProgram(line._prog);
+                    const uscale = webgl.getUniformLocation(line._prog, "uscale");
+                    webgl.uniformMatrix2fv(uscale, false, new Float32Array([
+                        line.scaleX * this.gScaleX,
+                        0,
+                        0,
+                        line.scaleY * this.gScaleY * this.gXYratio,
+                    ]));
+                    const uoffset = webgl.getUniformLocation(line._prog, "uoffset");
                     webgl.uniform2fv(uoffset, new Float32Array([line.offsetX + this.gOffsetX, line.offsetY + this.gOffsetY]));
-                    const uColor = webgl.getUniformLocation(line.prog, "uColor");
+                    const uColor = webgl.getUniformLocation(line._prog, "uColor");
                     webgl.uniform4fv(uColor, [line.color.r, line.color.g, line.color.b, line.color.a]);
                     webgl.bufferData(webgl.ARRAY_BUFFER, line.xy, webgl.STREAM_DRAW);
-                    webgl.drawArrays((line.loop) ? webgl.LINE_LOOP : webgl.LINE_STRIP, 0, line.webglNumPoints);
+                    webgl.drawArrays(line.loop ? webgl.LINE_LOOP : webgl.LINE_STRIP, 0, line.webglNumPoints);
                 }
             });
         }
@@ -243,11 +264,17 @@
         }
         /**
          * adds a line to the plot
-         * @param line : this could be any of line, linestep, histogram, or polar
+         * @param line - this could be any of line, linestep, histogram, or polar
+         *
+         * @example
+         * ```typescript
+         * const line = new line(color, numPoints);
+         * wglp.addLine(line);
+         * ```
          */
         addLine(line) {
-            line.vbuffer = this.webgl.createBuffer();
-            this.webgl.bindBuffer(this.webgl.ARRAY_BUFFER, line.vbuffer);
+            line._vbuffer = this.webgl.createBuffer();
+            this.webgl.bindBuffer(this.webgl.ARRAY_BUFFER, line._vbuffer);
             this.webgl.bufferData(this.webgl.ARRAY_BUFFER, line.xy, this.webgl.STREAM_DRAW);
             const vertCode = `
       attribute vec2 coordinates;
@@ -273,16 +300,23 @@
             const fragShader = this.webgl.createShader(this.webgl.FRAGMENT_SHADER);
             this.webgl.shaderSource(fragShader, fragCode);
             this.webgl.compileShader(fragShader);
-            line.prog = this.webgl.createProgram();
-            this.webgl.attachShader(line.prog, vertShader);
-            this.webgl.attachShader(line.prog, fragShader);
-            this.webgl.linkProgram(line.prog);
-            this.webgl.bindBuffer(this.webgl.ARRAY_BUFFER, line.vbuffer);
-            line.coord = this.webgl.getAttribLocation(line.prog, "coordinates");
-            this.webgl.vertexAttribPointer(line.coord, 2, this.webgl.FLOAT, false, 0, 0);
-            this.webgl.enableVertexAttribArray(line.coord);
+            line._prog = this.webgl.createProgram();
+            this.webgl.attachShader(line._prog, vertShader);
+            this.webgl.attachShader(line._prog, fragShader);
+            this.webgl.linkProgram(line._prog);
+            this.webgl.bindBuffer(this.webgl.ARRAY_BUFFER, line._vbuffer);
+            line._coord = this.webgl.getAttribLocation(line._prog, "coordinates");
+            this.webgl.vertexAttribPointer(line._coord, 2, this.webgl.FLOAT, false, 0, 0);
+            this.webgl.enableVertexAttribArray(line._coord);
             this.lines.push(line);
         }
+        /**
+         * Change the WbGL viewport
+         * @param a
+         * @param b
+         * @param c
+         * @param d
+         */
         viewport(a, b, c, d) {
             this.webgl.viewport(a, b, c, d);
         }
@@ -317,6 +351,7 @@
             this.currentX = 0;
             this.initialX = 0;
             this.handlePos = 0;
+            this.enable = true;
             /**
              * Current value of the slider
              * @default half of the value range
@@ -343,11 +378,13 @@
             this.makeDivs(div);
             this.init();
             this.handleToCentre();
-            this.divHandle.addEventListener("mousedown", e => {
+            this.divHandle.addEventListener("mousedown", (e) => {
                 const x = e.clientX;
-                this.dragStart(x);
+                if (this.enable) {
+                    this.dragStart(x);
+                }
             });
-            this.divMain.addEventListener("mousemove", e => {
+            this.divMain.addEventListener("mousemove", (e) => {
                 const x = e.clientX;
                 this.drag(e, x);
             });
@@ -357,19 +394,23 @@
             this.divMain.addEventListener("mouseleave", () => {
                 this.dragEnd();
             });
-            this.divBarL.addEventListener("mousedown", e => {
-                const x = e.clientX;
-                this.translate2(x);
+            this.divBarL.addEventListener("mousedown", (e) => {
+                if (this.enable) {
+                    const x = e.clientX;
+                    this.translateN(x);
+                }
             });
-            this.divBarR.addEventListener("mousedown", e => {
-                const x = e.clientX;
-                this.translate2(x);
+            this.divBarR.addEventListener("mousedown", (e) => {
+                if (this.enable) {
+                    const x = e.clientX;
+                    this.translateN(x);
+                }
             });
-            this.divHandle.addEventListener("touchstart", e => {
+            this.divHandle.addEventListener("touchstart", (e) => {
                 const x = e.touches[0].clientX;
                 this.dragStart(x);
             });
-            this.divMain.addEventListener("touchmove", e => {
+            this.divMain.addEventListener("touchmove", (e) => {
                 const x = e.touches[0].clientX;
                 this.drag(e, x);
             });
@@ -386,7 +427,7 @@
             if (this.active) {
                 e.preventDefault();
                 this.currentX = x - this.initialX;
-                this.translate2(this.currentX);
+                this.translateN(this.currentX);
                 this.value = this.getPositionValue();
                 this.dispatchEvent(new CustomEvent("update"));
             }
@@ -396,7 +437,7 @@
             this.dispatchEvent(new CustomEvent("drag-end"));
         }
         /*-----------------------------------------------------------*/
-        translate2(xPos) {
+        translateN(xPos) {
             this.translate(xPos);
             if (this.valueN > 0) {
                 let val = this.getPositionValue();
@@ -417,10 +458,8 @@
                     break;
                 }
                 default: {
-                    this.divHandle.style.left =
-                        (this.handlePos - this.handleOffset).toString() + "px";
-                    this.divBarL.style.width =
-                        (this.handlePos - this.handleOffset).toString() + "px";
+                    this.divHandle.style.left = (this.handlePos - this.handleOffset).toString() + "px";
+                    this.divBarL.style.width = (this.handlePos - this.handleOffset).toString() + "px";
                 }
             }
         }
@@ -444,13 +483,11 @@
             const handleWidth = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("width"));
             const handlePad = parseFloat(getComputedStyle(this.divHandle).getPropertyValue("border-left-width"));
             this.handleOffset = handleWidth / 2 + handlePad;
-            this.handlePos =
-                parseFloat(getComputedStyle(this.divHandle).left) + this.handleOffset;
+            this.handlePos = parseFloat(getComputedStyle(this.divHandle).left) + this.handleOffset;
             this.divBarL.style.left = this.handleOffset.toString() + "px";
             this.divBarR.style.left = this.handleOffset.toString() + "px";
             this.sliderWidth = divMainWidth - 2 * this.handleOffset;
-            this.divBarL.style.width =
-                (this.handlePos - this.handleOffset).toString() + "px";
+            this.divBarL.style.width = (this.handlePos - this.handleOffset).toString() + "px";
             this.divBarR.style.width = this.sliderWidth.toString() + "px";
             this.pxMin = this.handleOffset;
             this.pxMax = this.pxMin + this.sliderWidth;
@@ -478,6 +515,23 @@
         resize() {
             this.init();
             this.setValue(this.value);
+        }
+        /**
+         * Change the state of the slider
+         * @param state enable state of the slider
+         */
+        setEnable(state) {
+            this.enable = state;
+            if (this.enable) {
+                this.divHandle.style.backgroundColor = "darkslategrey";
+                this.divBarL.style.backgroundColor = "lightskyblue";
+                this.divBarR.style.backgroundColor = "lightgray";
+            }
+            else {
+                this.divHandle.style.backgroundColor = "lightgray";
+                this.divBarL.style.backgroundColor = "gray";
+                this.divBarR.style.backgroundColor = "gray";
+            }
         }
         /**
          * Sets the status of the debug mode
@@ -610,7 +664,7 @@
             lineCursor = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), 2);
             lineBorder = new WebglPolar(new ColorRGBA(0.9, 0.9, 0.9, 1), numPoints);
             lineBorder.loop = true;
-            wglp = new WebGLplot(canv);
+            wglp = new WebGLPlot(canv);
             //wglp.offsetX = -1;
             wglp.gXYratio = numX / numY;
             //line.linespaceX(-1, 2  / numX);
